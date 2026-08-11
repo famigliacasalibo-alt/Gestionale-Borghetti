@@ -36,7 +36,7 @@ function NewAppointmentModal({ open, onClose, onSave }) {
 
       categoria: "appuntamento",
 
-      unitaId: getUnitaId(area),
+      unitId: getUnitaId(area),
 
       descrizione,
 
