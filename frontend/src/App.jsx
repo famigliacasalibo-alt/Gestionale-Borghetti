@@ -38,6 +38,7 @@ function App() {
 
   const fileInputRef = useRef(null);
 
+  // Carica gli eventi salvati su Supabase
   useEffect(() => {
     async function caricaEventiDaSupabase() {
       const { data, error } = await supabase
@@ -70,6 +71,31 @@ function App() {
     caricaEventiDaSupabase();
   }, []);
 
+  // Carica l'ultimo check-out salvato su Supabase
+  useEffect(() => {
+    async function caricaCheckOutDaSupabase() {
+      const { data, error } = await supabase
+        .from("check_out")
+        .select("dati")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Errore caricamento check-out da Supabase:", error);
+        return;
+      }
+
+      if (!data || !data.dati) {
+        return;
+      }
+
+      setCheckOut(data.dati);
+    }
+
+    caricaCheckOutDaSupabase();
+  }, []);
+
   async function caricaFile(event) {
     const file = event.target.files[0];
 
@@ -78,6 +104,20 @@ function App() {
     const dati = await importaAmicHotel(file);
 
     setCheckOut(dati);
+
+    // Salva il nuovo check-out su Supabase
+    const { error } = await supabase
+      .from("check_out")
+      .insert([
+        {
+          dati,
+        },
+      ]);
+
+    if (error) {
+      console.error("Errore salvataggio check-out:", error);
+      alert("Errore nel salvataggio dei check-out.");
+    }
   }
 
   async function handleNuovoElemento(nuovoElemento) {
