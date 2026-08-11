@@ -8,7 +8,6 @@ import Header from "./components/Header";
 import UploadCheckOut from "./components/UploadCheckOut";
 import DashboardSuggerimento from "./components/DashboardSuggerimento";
 import CheckOutTable from "./components/CheckOutTable";
-import FilterTable from "./components/FilterTable";
 import EventTable from "./components/EventTable";
 import MaintenanceModal from "./components/MaintenanceModal";
 import NewEventModal from "./components/NewEventModal";
@@ -19,7 +18,6 @@ import { getExpiredFilterMaintenance } from "./utils/maintenanceEngine";
 import { initializeAutomaticEvents } from "./services/eventEngine";
 
 import { supabase } from "./supabaseClient";
-
 
 function App() {
   const [maintenance, setMaintenance] = useState(
@@ -39,7 +37,6 @@ function App() {
   const [eventoDaModificare, setEventoDaModificare] = useState(null);
 
   const fileInputRef = useRef(null);
-
 
   useEffect(() => {
     async function caricaEventiDaSupabase() {
@@ -73,7 +70,6 @@ function App() {
     caricaEventiDaSupabase();
   }, []);
 
-
   async function caricaFile(event) {
     const file = event.target.files[0];
 
@@ -83,7 +79,6 @@ function App() {
 
     setCheckOut(dati);
   }
-
 
   async function handleNuovoElemento(nuovoElemento) {
     const { error } = await supabase
@@ -101,7 +96,6 @@ function App() {
       ...precedenti.filter((evento) => evento.id !== nuovoElemento.id),
     ]);
   }
-
 
   async function handleAggiornaEvento(eventoAggiornato) {
     const { error } = await supabase
@@ -126,7 +120,6 @@ function App() {
     setEventoDaModificare(null);
     setNewEventOpen(false);
   }
-
 
   async function handleChiudiEvento(id) {
     const dataChiusura = new Date().toLocaleDateString("it-IT");
@@ -158,7 +151,6 @@ function App() {
     );
   }
 
-
   function handleChiudiManutenzione(maintenanceType, unitId) {
     setMaintenance((precedenti) =>
       precedenti.map((m) => {
@@ -189,18 +181,15 @@ function App() {
     );
   }
 
-
   function handleModificaEvento(evento) {
     setEventoDaModificare(evento);
     setNewEventOpen(true);
   }
 
-
   function handleChiudiModalEvento() {
     setEventoDaModificare(null);
     setNewEventOpen(false);
   }
-
 
   return (
     <div className="App">
@@ -214,34 +203,26 @@ function App() {
         onArchivio={() => setArchiveOpen(true)}
       />
 
-
       <UploadCheckOut
         ref={fileInputRef}
         onCaricaFile={caricaFile}
       />
-
 
       <DashboardSuggerimento
         events={events}
         checkOut={checkOut}
       />
 
-
       <CheckOutTable
         checkOut={checkOut}
         onApriManutenzioni={setAppartamentoSelezionato}
       />
-
-
-      <FilterTable maintenance={maintenance} />
-
 
       <EventTable
         events={events}
         onChiudi={handleChiudiEvento}
         onModifica={handleModificaEvento}
       />
-
 
       <MaintenanceModal
         appartamento={appartamentoSelezionato}
@@ -252,7 +233,6 @@ function App() {
         onChiudi={() => setAppartamentoSelezionato(null)}
       />
 
-
       <NewEventModal
         open={newEventOpen}
         onClose={handleChiudiModalEvento}
@@ -261,13 +241,11 @@ function App() {
         evento={eventoDaModificare}
       />
 
-
       <NewAppointmentModal
         open={appointmentOpen}
         onClose={() => setAppointmentOpen(false)}
         onSave={handleNuovoElemento}
       />
-
 
       <ArchiveModal
         open={archiveOpen}
@@ -277,6 +255,5 @@ function App() {
     </div>
   );
 }
-
 
 export default App;
