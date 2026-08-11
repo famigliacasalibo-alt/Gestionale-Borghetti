@@ -1,0 +1,202 @@
+body {
+  margin: 0;
+  background: #f3f5f7;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #2c3e50;
+}
+
+.App {
+  max-width: 1500px;
+  margin: 30px auto;
+  padding: 25px;
+}
+
+/* HEADER */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: white;
+
+  padding: 25px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 4px 18px rgba(0,0,0,.08);
+
+  margin-bottom: 25px;
+}
+
+.header h1{
+  margin:0;
+  color:#1f3b57;
+}
+
+.header p{
+  margin-top:8px;
+  color:#666;
+}
+
+/* PULSANTI */
+
+.actions{
+  display:flex;
+  gap:15px;
+}
+
+button{
+  background:#0d6efd;
+  color:white;
+  border:none;
+  padding:12px 22px;
+  border-radius:8px;
+  font-size:15px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+button:hover{
+  background:#0b5ed7;
+}
+
+/* CARD */
+
+.card{
+
+  background:white;
+
+  border-radius:12px;
+
+  box-shadow:0 4px 18px rgba(0,0,0,.08);
+
+  padding:20px;
+
+  margin-bottom:25px;
+
+}
+
+.card h2{
+
+  margin-top:0;
+
+  color:#1f3b57;
+
+}
+
+/* TABELLE */
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+
+th{
+
+  background:#1f3b57;
+
+  color:white;
+
+  padding:12px;
+
+  text-align:left;
+
+}
+
+td{
+
+  padding:12px;
+
+  border-bottom:1px solid #e5e5e5;
+
+}
+
+tr:hover{
+
+  background:#f8fafb;
+
+}
+
+/* FILE */
+
+input[type=file]{
+
+  margin-top:10px;
+
+}
+
+/* MODAL */
+
+.modal-overlay{
+
+  position:fixed;
+
+  inset:0;
+
+  background:rgba(0,0,0,.45);
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  z-index:999;
+
+}
+
+.modal{
+
+  width:700px;
+
+  max-width:95%;
+
+  background:white;
+
+  border-radius:12px;
+
+  padding:25px;
+
+  box-shadow:0 20px 40px rgba(0,0,0,.25);
+
+}
+
+.modal h2{
+
+  margin-top:0;
+
+  color:#1f3b57;
+
+}
+
+.modal h3{
+
+  color:#1f3b57;
+
+}
+
+.modal textarea{
+
+  width:100%;
+
+  padding:10px;
+
+  box-sizing:border-box;
+
+  resize:vertical;
+
+}
+
+.buttons{
+
+  display:flex;
+
+  justify-content:flex-end;
+
+  gap:10px;
+
+  margin-top:20px;
+
+}

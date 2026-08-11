@@ -1,0 +1,24 @@
+[
+  { "id": "BOPA1", "nome": "BOPA 1", "zona": "BOPA" },
+  { "id": "BOPA2", "nome": "BOPA 2", "zona": "BOPA" },
+  { "id": "BOPA1S", "nome": "BOPA 1S", "zona": "BOPA" },
+  { "id": "BOPA2S", "nome": "BOPA 2S", "zona": "BOPA" },
+  { "id": "BOPA3", "nome": "BOPA 3", "zona": "BOPA" },
+  { "id": "BOPA4", "nome": "BOPA 4", "zona": "BOPA" },
+  { "id": "BOPA5", "nome": "BOPA 5", "zona": "BOPA" },
+  { "id": "BOPA6", "nome": "BOPA 6", "zona": "BOPA" },
+  { "id": "BOPA7", "nome": "BOPA 7", "zona": "BOPA" },
+  { "id": "BOPA8", "nome": "BOPA 8", "zona": "BOPA" },
+
+  { "id": "BOSA1", "nome": "BOSA 1", "zona": "BOSA" },
+  { "id": "BOSA2", "nome": "BOSA 2", "zona": "BOSA" },
+  { "id": "BOSA3", "nome": "BOSA 3", "zona": "BOSA" },
+  { "id": "BOSA4", "nome": "BOSA 4", "zona": "BOSA" },
+  { "id": "BOSA5", "nome": "BOSA 5", "zona": "BOSA" },
+  { "id": "BOSA5S", "nome": "BOSA 5S", "zona": "BOSA" },
+  { "id": "BOSA6", "nome": "BOSA 6", "zona": "BOSA" },
+  { "id": "BOSA7", "nome": "BOSA 7", "zona": "BOSA" },
+  { "id": "BOSA9", "nome": "BOSA 9", "zona": "BOSA" },
+
+  { "id": "STOPPANI17", "nome": "STOPPANI 17", "zona": "BOCA" }
+]

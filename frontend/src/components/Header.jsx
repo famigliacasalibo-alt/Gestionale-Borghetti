@@ -1,0 +1,35 @@
+function Header({
+  onNuovoEvento,
+  onCaricaCheckOut,
+  onNuovoAppuntamento,
+  onArchivio,
+}) {
+  return (
+    <div className="header">
+      <div>
+        <h1>🏨 Gestionale Borghetti</h1>
+        <p>Gestione operativa appartamenti</p>
+      </div>
+
+      <div className="actions">
+        <button onClick={onCaricaCheckOut}>
+          📂 Carica Check-out
+        </button>
+
+        <button onClick={onNuovoAppuntamento}>
+          📅 Appuntamento
+        </button>
+
+        <button onClick={onNuovoEvento}>
+          ➕ Evento
+        </button>
+
+        <button onClick={onArchivio}>
+          🗂️ Archivio
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default Header;
