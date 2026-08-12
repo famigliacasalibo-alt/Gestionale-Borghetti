@@ -24,7 +24,7 @@ function App() {
     getExpiredFilterMaintenance()
   );
 
-  const [events, setEvents] = useState(initializeAutomaticEvents());
+  const [events, setEvents] = useState([]);
   const [checkOut, setCheckOut] = useState([]);
 
   const [appartamentoSelezionato, setAppartamentoSelezionato] =
@@ -38,7 +38,11 @@ function App() {
 
   const fileInputRef = useRef(null);
 
-  // Carica gli eventi salvati su Supabase
+  /*
+   * Carica gli eventi da Supabase e verifica
+   * se ci sono filtri scaduti da trasformare
+   * automaticamente in eventi.
+   */
   useEffect(() => {
     async function caricaEventiDaSupabase() {
       const { data, error } = await supabase
@@ -47,31 +51,29 @@ function App() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Errore caricamento eventi da Supabase:", error);
+        console.error(
+          "Errore caricamento eventi da Supabase:",
+          error
+        );
         return;
       }
 
-      if (!data || data.length === 0) {
-        return;
-      }
+      const eventiEsistenti = data || [];
 
-      setEvents((eventiAutomatici) => {
-        const eventiEsistenti = new Map(
-          eventiAutomatici.map((evento) => [evento.id, evento])
+      const eventiAggiornati =
+        await initializeAutomaticEvents(
+          eventiEsistenti
         );
 
-        data.forEach((evento) => {
-          eventiEsistenti.set(evento.id, evento);
-        });
-
-        return Array.from(eventiEsistenti.values());
-      });
+      setEvents(eventiAggiornati);
     }
 
     caricaEventiDaSupabase();
   }, []);
 
-  // Carica l'ultimo check-out salvato su Supabase
+  /*
+   * Carica l'ultimo check-out salvato su Supabase.
+   */
   useEffect(() => {
     async function caricaCheckOutDaSupabase() {
       const { data, error } = await supabase
@@ -82,7 +84,10 @@ function App() {
         .maybeSingle();
 
       if (error) {
-        console.error("Errore caricamento check-out da Supabase:", error);
+        console.error(
+          "Errore caricamento check-out da Supabase:",
+          error
+        );
         return;
       }
 
@@ -105,7 +110,6 @@ function App() {
 
     setCheckOut(dati);
 
-    // Salva il nuovo check-out su Supabase
     const { error } = await supabase
       .from("check_out")
       .insert([
@@ -115,37 +119,63 @@ function App() {
       ]);
 
     if (error) {
-      console.error("Errore salvataggio check-out:", error);
-      alert("Errore nel salvataggio dei check-out.");
+      console.error(
+        "Errore salvataggio check-out:",
+        error
+      );
+
+      alert(
+        "Errore nel salvataggio dei check-out."
+      );
     }
   }
 
   async function handleNuovoElemento(nuovoElemento) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("events")
-      .insert([nuovoElemento]);
+      .insert([nuovoElemento])
+      .select("*")
+      .single();
 
     if (error) {
-      console.error("Errore salvataggio evento:", error);
-      alert("Errore nel salvataggio dell'evento.");
+      console.error(
+        "Errore salvataggio evento:",
+        error
+      );
+
+      alert(
+        "Errore nel salvataggio dell'evento."
+      );
+
       return;
     }
 
     setEvents((precedenti) => [
-      nuovoElemento,
-      ...precedenti.filter((evento) => evento.id !== nuovoElemento.id),
+      data,
+      ...precedenti.filter(
+        (evento) => evento.id !== data.id
+      ),
     ]);
   }
 
-  async function handleAggiornaEvento(eventoAggiornato) {
+  async function handleAggiornaEvento(
+    eventoAggiornato
+  ) {
     const { error } = await supabase
       .from("events")
       .update(eventoAggiornato)
       .eq("id", eventoAggiornato.id);
 
     if (error) {
-      console.error("Errore aggiornamento evento:", error);
-      alert("Errore nell'aggiornamento dell'evento.");
+      console.error(
+        "Errore aggiornamento evento:",
+        error
+      );
+
+      alert(
+        "Errore nell'aggiornamento dell'evento."
+      );
+
       return;
     }
 
@@ -162,7 +192,25 @@ function App() {
   }
 
   async function handleChiudiEvento(id) {
-    const dataChiusura = new Date().toLocaleDateString("it-IT");
+    const evento =
+      events.find((e) => e.id === id);
+
+    const oggi = new Date();
+
+    const isFiltro =
+      evento?.categoria === "manutenzione" &&
+      evento?.descrizione === "Pulizia filtri";
+
+    /*
+     * Per gli eventi filtro salviamo la data
+     * in formato ISO, così potrà essere utilizzata
+     * automaticamente per calcolare i successivi 90 giorni.
+     *
+     * Gli altri eventi continuano a usare il formato italiano.
+     */
+    const dataChiusura = isFiltro
+      ? oggi.toISOString().slice(0, 10)
+      : oggi.toLocaleDateString("it-IT");
 
     const { error } = await supabase
       .from("events")
@@ -173,8 +221,15 @@ function App() {
       .eq("id", id);
 
     if (error) {
-      console.error("Errore chiusura evento:", error);
-      alert("Errore nella chiusura dell'evento.");
+      console.error(
+        "Errore chiusura evento:",
+        error
+      );
+
+      alert(
+        "Errore nella chiusura dell'evento."
+      );
+
       return;
     }
 
@@ -191,7 +246,10 @@ function App() {
     );
   }
 
-  function handleChiudiManutenzione(maintenanceType, unitId) {
+  function handleChiudiManutenzione(
+    maintenanceType,
+    unitId
+  ) {
     setMaintenance((precedenti) =>
       precedenti.map((m) => {
         if (
@@ -200,19 +258,25 @@ function App() {
         ) {
           const oggi = new Date();
 
-          const prossimaScadenza = new Date(oggi);
+          const prossimaScadenza =
+            new Date(oggi);
+
           prossimaScadenza.setDate(
-            prossimaScadenza.getDate() + 180
+            prossimaScadenza.getDate() + 90
           );
 
           return {
             ...m,
-            lastCleaning: oggi.toISOString().slice(0, 10),
-            dueDate: prossimaScadenza
-              .toISOString()
-              .slice(0, 10),
+            lastCleaning:
+              oggi.toISOString().slice(0, 10),
+
+            dueDate:
+              prossimaScadenza
+                .toISOString()
+                .slice(0, 10),
+
             expired: false,
-            daysRemaining: 180,
+            daysRemaining: 90,
           };
         }
 
@@ -238,9 +302,15 @@ function App() {
           setEventoDaModificare(null);
           setNewEventOpen(true);
         }}
-        onNuovoAppuntamento={() => setAppointmentOpen(true)}
-        onCaricaCheckOut={() => fileInputRef.current?.click()}
-        onArchivio={() => setArchiveOpen(true)}
+        onNuovoAppuntamento={() =>
+          setAppointmentOpen(true)
+        }
+        onCaricaCheckOut={() =>
+          fileInputRef.current?.click()
+        }
+        onArchivio={() =>
+          setArchiveOpen(true)
+        }
       />
 
       <UploadCheckOut
@@ -255,7 +325,9 @@ function App() {
 
       <CheckOutTable
         checkOut={checkOut}
-        onApriManutenzioni={setAppartamentoSelezionato}
+        onApriManutenzioni={
+          setAppartamentoSelezionato
+        }
       />
 
       <EventTable
@@ -265,12 +337,18 @@ function App() {
       />
 
       <MaintenanceModal
-        appartamento={appartamentoSelezionato}
+        appartamento={
+          appartamentoSelezionato
+        }
         maintenance={maintenance}
         events={events}
         onChiudiEvento={handleChiudiEvento}
-        onChiudiManutenzione={handleChiudiManutenzione}
-        onChiudi={() => setAppartamentoSelezionato(null)}
+        onChiudiManutenzione={
+          handleChiudiManutenzione
+        }
+        onChiudi={() =>
+          setAppartamentoSelezionato(null)
+        }
       />
 
       <NewEventModal
@@ -283,13 +361,17 @@ function App() {
 
       <NewAppointmentModal
         open={appointmentOpen}
-        onClose={() => setAppointmentOpen(false)}
+        onClose={() =>
+          setAppointmentOpen(false)
+        }
         onSave={handleNuovoElemento}
       />
 
       <ArchiveModal
         open={archiveOpen}
-        onClose={() => setArchiveOpen(false)}
+        onClose={() =>
+          setArchiveOpen(false)
+        }
         events={events}
       />
     </div>

@@ -6,6 +6,9 @@ const filterConfig = maintenanceTypes.find(
   (type) => type.id === "FILTERS"
 );
 
+// Evita due inizializzazioni contemporanee
+let automaticEventsInitializationPromise = null;
+
 function parseData(data) {
   if (!data) return null;
 
@@ -31,7 +34,10 @@ function formatISODate(date) {
 }
 
 function sameUnit(event, unitId) {
-  return String(event?.unitId ?? event?.unitaId ?? "") === String(unitId);
+  return (
+    String(event?.unitId ?? event?.unitaId ?? "") ===
+    String(unitId)
+  );
 }
 
 function isFilterEvent(event) {
@@ -64,8 +70,13 @@ function findLatestFilterEvent(existingEvents, unitId) {
         sameUnit(event, unitId)
     )
     .sort((a, b) => {
-      const dateA = parseData(a.dataChiusura || a.data);
-      const dateB = parseData(b.dataChiusura || b.data);
+      const dateA = parseData(
+        a.dataChiusura || a.data
+      );
+
+      const dateB = parseData(
+        b.dataChiusura || b.data
+      );
 
       return (
         (dateB?.getTime() || 0) -
@@ -76,11 +87,10 @@ function findLatestFilterEvent(existingEvents, unitId) {
   return unitEvents[0] || null;
 }
 
-export async function initializeAutomaticEvents(
+async function executeAutomaticEventsInitialization(
   existingEvents = []
 ) {
   const today = new Date();
-
   const events = [...existingEvents];
   const eventsToCreate = [];
 
@@ -90,22 +100,16 @@ export async function initializeAutomaticEvents(
       filter.unitId
     );
 
-    /*
-     * Se esiste già un evento aperto per questo appartamento,
-     * non dobbiamo crearne un altro.
-     */
+    // Se esiste già un evento aperto,
+    // non ne creiamo un altro.
     if (latestEvent?.stato === "aperto") {
       continue;
     }
 
     let dueDate = null;
 
-    /*
-     * DAL SECONDO CICLO IN POI:
-     *
-     * la data di riferimento è la data di chiusura
-     * dell'ultimo evento filtro salvato su Supabase.
-     */
+    // Dal secondo ciclo in poi:
+    // partiamo dalla data di chiusura dell'ultimo evento.
     if (latestEvent?.stato === "chiuso") {
       const lastCleaning = parseData(
         latestEvent.dataChiusura
@@ -122,13 +126,8 @@ export async function initializeAutomaticEvents(
       );
     }
 
-    /*
-     * PRIMO CICLO:
-     *
-     * se non esiste ancora nessun evento filtro
-     * per questo appartamento, utilizziamo lo storico
-     * iniziale contenuto in filterHistory.
-     */
+    // Primo ciclo:
+    // utilizziamo lo storico iniziale.
     if (!latestEvent) {
       const lastCleaning = parseData(
         filter.lastCleaning
@@ -145,10 +144,7 @@ export async function initializeAutomaticEvents(
       );
     }
 
-    /*
-     * Il nuovo evento viene creato solo quando
-     * la scadenza è arrivata.
-     */
+    // Non ancora scaduto.
     if (!dueDate || dueDate > today) {
       continue;
     }
@@ -165,10 +161,6 @@ export async function initializeAutomaticEvents(
     return events;
   }
 
-  /*
-   * Salviamo direttamente i nuovi eventi su Supabase.
-   * L'id viene generato dal database.
-   */
   const { data, error } = await supabase
     .from("events")
     .insert(eventsToCreate)
@@ -184,4 +176,27 @@ export async function initializeAutomaticEvents(
   }
 
   return [...data, ...events];
+}
+
+export async function initializeAutomaticEvents(
+  existingEvents = []
+) {
+  /*
+   * Se un'altra inizializzazione è già in corso,
+   * aspettiamo quella invece di crearne una seconda.
+   */
+  if (automaticEventsInitializationPromise) {
+    return automaticEventsInitializationPromise;
+  }
+
+  automaticEventsInitializationPromise =
+    executeAutomaticEventsInitialization(
+      existingEvents
+    );
+
+  try {
+    return await automaticEventsInitializationPromise;
+  } finally {
+    automaticEventsInitializationPromise = null;
+  }
 }
