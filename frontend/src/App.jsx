@@ -14,16 +14,11 @@ import NewEventModal from "./components/NewEventModal";
 import NewAppointmentModal from "./components/NewAppointmentModal";
 import ArchiveModal from "./components/ArchiveModal";
 
-import { getExpiredFilterMaintenance } from "./utils/maintenanceEngine";
 import { initializeAutomaticEvents } from "./services/eventEngine";
 
 import { supabase } from "./supabaseClient";
 
 function App() {
-  const [maintenance, setMaintenance] = useState(
-    getExpiredFilterMaintenance()
-  );
-
   const [events, setEvents] = useState([]);
   const [checkOut, setCheckOut] = useState([]);
 
@@ -39,9 +34,11 @@ function App() {
   const fileInputRef = useRef(null);
 
   /*
-   * Carica gli eventi da Supabase e verifica
-   * se ci sono filtri scaduti da trasformare
-   * automaticamente in eventi.
+   * Carica gli eventi da Supabase.
+   *
+   * L'eventEngine utilizza esclusivamente gli eventi
+   * già presenti nel database per gestire il ciclo
+   * automatico delle manutenzioni.
    */
   useEffect(() => {
     async function caricaEventiDaSupabase() {
@@ -192,8 +189,9 @@ function App() {
   }
 
   async function handleChiudiEvento(id) {
-    const evento =
-      events.find((e) => e.id === id);
+    const evento = events.find(
+      (e) => e.id === id
+    );
 
     const oggi = new Date();
 
@@ -209,7 +207,11 @@ function App() {
      * Gli altri eventi continuano a usare il formato italiano.
      */
     const dataChiusura = isFiltro
-      ? oggi.toISOString().slice(0, 10)
+      ? `${oggi.getFullYear()}-${String(
+          oggi.getMonth() + 1
+        ).padStart(2, "0")}-${String(
+          oggi.getDate()
+        ).padStart(2, "0")}`
       : oggi.toLocaleDateString("it-IT");
 
     const { error } = await supabase
@@ -243,45 +245,6 @@ function App() {
             }
           : e
       )
-    );
-  }
-
-  function handleChiudiManutenzione(
-    maintenanceType,
-    unitId
-  ) {
-    setMaintenance((precedenti) =>
-      precedenti.map((m) => {
-        if (
-          m.maintenanceType === maintenanceType &&
-          m.unitId === unitId
-        ) {
-          const oggi = new Date();
-
-          const prossimaScadenza =
-            new Date(oggi);
-
-          prossimaScadenza.setDate(
-            prossimaScadenza.getDate() + 90
-          );
-
-          return {
-            ...m,
-            lastCleaning:
-              oggi.toISOString().slice(0, 10),
-
-            dueDate:
-              prossimaScadenza
-                .toISOString()
-                .slice(0, 10),
-
-            expired: false,
-            daysRemaining: 90,
-          };
-        }
-
-        return m;
-      })
     );
   }
 
@@ -340,12 +303,8 @@ function App() {
         appartamento={
           appartamentoSelezionato
         }
-        maintenance={maintenance}
         events={events}
         onChiudiEvento={handleChiudiEvento}
-        onChiudiManutenzione={
-          handleChiudiManutenzione
-        }
         onChiudi={() =>
           setAppartamentoSelezionato(null)
         }
