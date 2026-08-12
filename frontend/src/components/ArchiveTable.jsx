@@ -17,31 +17,39 @@ function ArchiveTable({ events }) {
       {archivio.length === 0 ? (
         <p>Nessun evento archiviato.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Categoria</th>
-              <th>Unità</th>
-              <th>Descrizione</th>
-              <th>Aperto</th>
-              <th>Chiuso</th>
-              <th>Peso</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {archivio.map((evento) => (
-              <tr key={evento.id}>
-                <td>{evento.categoria}</td>
-                <td>{getNomeUnita(evento.unitaId)}</td>
-                <td>{evento.descrizione}</td>
-                <td>{evento.data}</td>
-                <td>{evento.dataChiusura}</td>
-                <td>{evento.peso}</td>
+        <div
+          style={{
+            maxHeight: "65vh",
+            overflowY: "auto",
+            overflowX: "auto",
+          }}
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Unità</th>
+                <th>Descrizione</th>
+                <th>Aperto</th>
+                <th>Chiuso</th>
+                <th>Peso</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {archivio.map((evento) => (
+                <tr key={evento.id}>
+                  <td>{evento.categoria}</td>
+                  <td>{getNomeUnita(evento.unitaId)}</td>
+                  <td>{evento.descrizione}</td>
+                  <td>{evento.data}</td>
+                  <td>{evento.dataChiusura}</td>
+                  <td>{evento.peso}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
