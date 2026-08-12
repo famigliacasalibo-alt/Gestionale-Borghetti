@@ -1,4 +1,3 @@
-import { filterHistory } from "../data/filterHistory";
 import { maintenanceTypes } from "../data/maintenanceTypes";
 import { supabase } from "../supabaseClient";
 
@@ -6,7 +5,6 @@ const filterConfig = maintenanceTypes.find(
   (type) => type.id === "FILTERS"
 );
 
-// Evita due inizializzazioni contemporanee
 let automaticEventsInitializationPromise = null;
 
 function parseData(data) {
@@ -30,7 +28,11 @@ function parseData(data) {
 }
 
 function formatISODate(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function sameUnit(event, unitId) {
@@ -48,22 +50,8 @@ function isFilterEvent(event) {
   );
 }
 
-function createFilterEvent(unitId, dueDate) {
-  return {
-    categoria: "manutenzione",
-    unitId,
-    descrizione: filterConfig.name,
-    data: formatISODate(dueDate),
-    peso: filterConfig.eventWeight,
-    stato: "aperto",
-    fotoApertura: [],
-    fotoChiusura: [],
-    dataChiusura: null,
-  };
-}
-
-function findLatestFilterEvent(existingEvents, unitId) {
-  const unitEvents = existingEvents
+function getFilterEvents(events, unitId) {
+  return events
     .filter(
       (event) =>
         isFilterEvent(event) &&
@@ -83,34 +71,114 @@ function findLatestFilterEvent(existingEvents, unitId) {
         (dateA?.getTime() || 0)
       );
     });
+}
 
-  return unitEvents[0] || null;
+function createNextFilterEvent(unitId, lastCleaning) {
+  const dueDate = new Date(lastCleaning);
+
+  dueDate.setDate(
+    dueDate.getDate() + filterConfig.intervalDays
+  );
+
+  const today = new Date();
+
+  return {
+    categoria: "manutenzione",
+    unitId,
+    descrizione: filterConfig.name,
+    data: formatISODate(dueDate),
+    peso: filterConfig.eventWeight,
+    stato:
+      dueDate <= today
+        ? "aperto"
+        : "programmato",
+    fotoApertura: [],
+    fotoChiusura: [],
+    dataChiusura: null,
+  };
 }
 
 async function executeAutomaticEventsInitialization(
   existingEvents = []
 ) {
-  const today = new Date();
   const events = [...existingEvents];
+  const updates = [];
   const eventsToCreate = [];
 
-  for (const filter of filterHistory) {
-    const latestEvent = findLatestFilterEvent(
+  /*
+   * Individuiamo tutti gli appartamenti che hanno
+   * almeno un evento "Pulizia filtri".
+   */
+  const unitIds = [
+    ...new Set(
+      events
+        .filter(isFilterEvent)
+        .map(
+          (event) =>
+            event.unitId ?? event.unitaId
+        )
+        .filter((unitId) => unitId != null)
+    ),
+  ];
+
+  for (const unitId of unitIds) {
+    const filterEvents = getFilterEvents(
       events,
-      filter.unitId
+      unitId
     );
 
-    // Se esiste già un evento aperto,
-    // non ne creiamo un altro.
-    if (latestEvent?.stato === "aperto") {
+    if (filterEvents.length === 0) {
       continue;
     }
 
-    let dueDate = null;
+    const latestEvent = filterEvents[0];
 
-    // Dal secondo ciclo in poi:
-    // partiamo dalla data di chiusura dell'ultimo evento.
-    if (latestEvent?.stato === "chiuso") {
+    /*
+     * 1. Evento già aperto:
+     *    non facciamo nulla.
+     */
+    if (latestEvent.stato === "aperto") {
+      continue;
+    }
+
+    /*
+     * 2. Evento programmato:
+     *    se la data non è ancora arrivata,
+     *    non facciamo nulla.
+     *
+     *    Se invece la data è arrivata,
+     *    lo trasformiamo in aperto.
+     */
+    if (latestEvent.stato === "programmato") {
+      const dueDate = parseData(
+        latestEvent.data
+      );
+
+      if (!dueDate) {
+        continue;
+      }
+
+      const today = new Date();
+
+      if (dueDate <= today) {
+        updates.push({
+          id: latestEvent.id,
+          stato: "aperto",
+        });
+      }
+
+      continue;
+    }
+
+    /*
+     * 3. Evento chiuso:
+     *    la data di chiusura diventa la nuova
+     *    data dell'ultima manutenzione.
+     *
+     *    Da quella data calcoliamo +90 giorni
+     *    e creiamo il prossimo evento.
+     */
+    if (latestEvent.stato === "chiuso") {
       const lastCleaning = parseData(
         latestEvent.dataChiusura
       );
@@ -119,51 +187,90 @@ async function executeAutomaticEventsInitialization(
         continue;
       }
 
-      dueDate = new Date(lastCleaning);
-
-      dueDate.setDate(
-        dueDate.getDate() + filterConfig.intervalDays
+      const nextEvent = createNextFilterEvent(
+        unitId,
+        lastCleaning
       );
+
+      eventsToCreate.push(nextEvent);
     }
+  }
 
-    // Primo ciclo:
-    // utilizziamo lo storico iniziale.
-    if (!latestEvent) {
-      const lastCleaning = parseData(
-        filter.lastCleaning
+  /*
+   * Aggiorniamo gli eventi programmati
+   * che sono arrivati a scadenza.
+   */
+  for (const update of updates) {
+    const { error } = await supabase
+      .from("events")
+      .update({
+        stato: update.stato,
+      })
+      .eq("id", update.id);
+
+    if (error) {
+      console.error(
+        "Errore apertura evento filtro:",
+        error
       );
-
-      if (!lastCleaning) {
-        continue;
-      }
-
-      dueDate = new Date(lastCleaning);
-
-      dueDate.setDate(
-        dueDate.getDate() + filterConfig.intervalDays
-      );
-    }
-
-    // Non ancora scaduto.
-    if (!dueDate || dueDate > today) {
       continue;
     }
 
-    eventsToCreate.push(
-      createFilterEvent(
-        filter.unitId,
-        dueDate
-      )
+    const index = events.findIndex(
+      (event) => event.id === update.id
     );
+
+    if (index !== -1) {
+      events[index] = {
+        ...events[index],
+        stato: update.stato,
+      };
+    }
   }
 
+  /*
+   * Creiamo i nuovi eventi successivi.
+   */
   if (eventsToCreate.length === 0) {
+    return events;
+  }
+
+  /*
+   * Protezione ulteriore contro duplicati:
+   * controlliamo nuovamente Supabase prima dell'insert.
+   */
+  const eventsDaCreare = [];
+
+  for (const newEvent of eventsToCreate) {
+    const { data: existing, error } = await supabase
+      .from("events")
+      .select("id")
+      .eq("categoria", newEvent.categoria)
+      .eq("unitId", newEvent.unitId)
+      .eq("descrizione", newEvent.descrizione)
+      .eq("data", newEvent.data)
+      .limit(1);
+
+    if (error) {
+      console.error(
+        "Errore controllo evento filtro:",
+        error
+      );
+      continue;
+    }
+
+    if (!existing || existing.length === 0) {
+      eventsDaCreare.push(newEvent);
+    }
+  }
+
+  if (eventsDaCreare.length === 0) {
     return events;
   }
 
   const { data, error } = await supabase
     .from("events")
-    .insert(eventsToCreate)
+    .insert(eventsDaCreare)
     .select("*");
 
   if (error) {
@@ -182,8 +289,7 @@ export async function initializeAutomaticEvents(
   existingEvents = []
 ) {
   /*
-   * Se un'altra inizializzazione è già in corso,
-   * aspettiamo quella invece di crearne una seconda.
+   * Evita due inizializzazioni contemporanee.
    */
   if (automaticEventsInitializationPromise) {
     return automaticEventsInitializationPromise;
