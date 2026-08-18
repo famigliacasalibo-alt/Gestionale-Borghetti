@@ -2,7 +2,7 @@ function Header({
   onNuovoEvento,
   onCaricaCheckOut,
   onNuovoAppuntamento,
-  onArchivio,
+  onNuovoOffice,
 }) {
   return (
     <div className="header">
@@ -24,8 +24,8 @@ function Header({
           ➕ Evento
         </button>
 
-        <button onClick={onArchivio}>
-          🗂️ Archivio
+        <button onClick={onNuovoOffice}>
+          💻 Office
         </button>
       </div>
     </div>

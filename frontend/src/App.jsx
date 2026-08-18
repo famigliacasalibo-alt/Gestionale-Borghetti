@@ -9,9 +9,11 @@ import UploadCheckOut from "./components/UploadCheckOut";
 import DashboardSuggerimento from "./components/DashboardSuggerimento";
 import CheckOutTable from "./components/CheckOutTable";
 import EventTable from "./components/EventTable";
+import OfficeTable from "./components/OfficeTable";
 import MaintenanceModal from "./components/MaintenanceModal";
 import NewEventModal from "./components/NewEventModal";
 import NewAppointmentModal from "./components/NewAppointmentModal";
+import NewOfficeModal from "./components/NewOfficeModal";
 import ArchiveModal from "./components/ArchiveModal";
 
 import { initializeAutomaticEvents } from "./services/eventEngine";
@@ -21,6 +23,7 @@ import { supabase } from "./supabaseClient";
 function App() {
   const [events, setEvents] = useState([]);
   const [checkOut, setCheckOut] = useState([]);
+  const [office, setOffice] = useState([]);
 
   const [appartamentoSelezionato, setAppartamentoSelezionato] =
     useState(null);
@@ -28,8 +31,11 @@ function App() {
   const [newEventOpen, setNewEventOpen] = useState(false);
   const [appointmentOpen, setAppointmentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [officeOpen, setOfficeOpen] = useState(false);
 
   const [eventoDaModificare, setEventoDaModificare] = useState(null);
+  const [attivitaOfficeDaModificare, setAttivitaOfficeDaModificare] =
+    useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -58,9 +64,7 @@ function App() {
       const eventiEsistenti = data || [];
 
       const eventiAggiornati =
-        await initializeAutomaticEvents(
-          eventiEsistenti
-        );
+        await initializeAutomaticEvents(eventiEsistenti);
 
       setEvents(eventiAggiornati);
     }
@@ -96,6 +100,31 @@ function App() {
     }
 
     caricaCheckOutDaSupabase();
+  }, []);
+
+  /*
+   * Carica le attività Office aperte da Supabase.
+   */
+  useEffect(() => {
+    async function caricaOfficeDaSupabase() {
+      const { data, error } = await supabase
+        .from("office")
+        .select("*")
+        .eq("completata", false)
+        .order("scadenza", { ascending: true });
+
+      if (error) {
+        console.error(
+          "Errore caricamento attività Office da Supabase:",
+          error
+        );
+        return;
+      }
+
+      setOffice(data || []);
+    }
+
+    caricaOfficeDaSupabase();
   }, []);
 
   async function caricaFile(event) {
@@ -153,6 +182,107 @@ function App() {
         (evento) => evento.id !== data.id
       ),
     ]);
+  }
+
+  async function handleNuovoOffice(nuovaAttivita) {
+    const { data, error } = await supabase
+      .from("office")
+      .insert([nuovaAttivita])
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error(
+        "Errore salvataggio attività Office:",
+        error
+      );
+
+      alert(
+        "Errore nel salvataggio dell'attività Office."
+      );
+
+      return;
+    }
+
+    setOffice((precedenti) =>
+      [...precedenti, data].sort(
+        (a, b) =>
+          new Date(a.scadenza) -
+          new Date(b.scadenza)
+      )
+    );
+
+    setOfficeOpen(false);
+  }
+
+  async function handleAggiornaOffice(attivitaAggiornata) {
+    const { data, error } = await supabase
+      .from("office")
+      .update({
+        descrizione: attivitaAggiornata.descrizione,
+        scadenza: attivitaAggiornata.scadenza,
+      })
+      .eq("id", attivitaAggiornata.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error(
+        "Errore aggiornamento attività Office:",
+        error
+      );
+
+      alert(
+        "Errore nell'aggiornamento dell'attività Office."
+      );
+
+      return;
+    }
+
+    setOffice((precedenti) =>
+      precedenti
+        .map((attivita) =>
+          attivita.id === data.id
+            ? data
+            : attivita
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.scadenza) -
+            new Date(b.scadenza)
+        )
+    );
+
+    setAttivitaOfficeDaModificare(null);
+    setOfficeOpen(false);
+  }
+
+  async function handleCompletaOffice(id) {
+    const { error } = await supabase
+      .from("office")
+      .update({
+        completata: true,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error(
+        "Errore completamento attività Office:",
+        error
+      );
+
+      alert(
+        "Errore nel completamento dell'attività Office."
+      );
+
+      return;
+    }
+
+    setOffice((precedenti) =>
+      precedenti.filter(
+        (attivita) => attivita.id !== id
+      )
+    );
   }
 
   async function handleAggiornaEvento(
@@ -258,6 +388,16 @@ function App() {
     setNewEventOpen(false);
   }
 
+  function handleModificaOffice(attivita) {
+    setAttivitaOfficeDaModificare(attivita);
+    setOfficeOpen(true);
+  }
+
+  function handleChiudiModalOffice() {
+    setAttivitaOfficeDaModificare(null);
+    setOfficeOpen(false);
+  }
+
   return (
     <div className="App">
       <Header
@@ -271,9 +411,10 @@ function App() {
         onCaricaCheckOut={() =>
           fileInputRef.current?.click()
         }
-        onArchivio={() =>
-          setArchiveOpen(true)
-        }
+        onNuovoOffice={() => {
+          setAttivitaOfficeDaModificare(null);
+          setOfficeOpen(true);
+        }}
       />
 
       <UploadCheckOut
@@ -297,6 +438,12 @@ function App() {
         events={events}
         onChiudi={handleChiudiEvento}
         onModifica={handleModificaEvento}
+      />
+
+      <OfficeTable
+        office={office}
+        onCompleta={handleCompletaOffice}
+        onModifica={handleModificaOffice}
       />
 
       <MaintenanceModal
@@ -324,6 +471,14 @@ function App() {
           setAppointmentOpen(false)
         }
         onSave={handleNuovoElemento}
+      />
+
+      <NewOfficeModal
+        open={officeOpen}
+        onClose={handleChiudiModalOffice}
+        onSave={handleNuovoOffice}
+        onUpdate={handleAggiornaOffice}
+        attivita={attivitaOfficeDaModificare}
       />
 
       <ArchiveModal
