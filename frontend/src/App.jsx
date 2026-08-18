@@ -415,6 +415,9 @@ function App() {
           setAttivitaOfficeDaModificare(null);
           setOfficeOpen(true);
         }}
+        onArchivio={() =>
+          setArchiveOpen(true)
+        }
       />
 
       <UploadCheckOut

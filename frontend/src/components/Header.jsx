@@ -3,6 +3,7 @@ function Header({
   onCaricaCheckOut,
   onNuovoAppuntamento,
   onNuovoOffice,
+  onArchivio,
 }) {
   return (
     <div className="header">
@@ -20,9 +21,17 @@ function Header({
           📅 Appuntamento
         </button>
 
-        <button onClick={onNuovoEvento}>
-          ➕ Evento
-        </button>
+        <div>
+          <button onClick={onNuovoEvento}>
+            ➕ Evento
+          </button>
+
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={onArchivio}>
+              🗂️ Archivio eventi
+            </button>
+          </div>
+        </div>
 
         <button onClick={onNuovoOffice}>
           💻 Office
