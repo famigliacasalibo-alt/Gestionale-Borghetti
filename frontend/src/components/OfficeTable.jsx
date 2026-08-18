@@ -3,7 +3,11 @@ function OfficeTable({
   onCompleta,
   onModifica,
 }) {
-  if (!office || office.length === 0) {
+  const officeAperti = (office || []).filter(
+    (attivita) => attivita.completata === false
+  );
+
+  if (officeAperti.length === 0) {
     return null;
   }
 
@@ -22,7 +26,7 @@ function OfficeTable({
         </thead>
 
         <tbody>
-          {office.map((attivita) => (
+          {officeAperti.map((attivita) => (
             <tr key={attivita.id}>
               <td>{attivita.descrizione}</td>
 

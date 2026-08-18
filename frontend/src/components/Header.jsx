@@ -4,6 +4,7 @@ function Header({
   onNuovoAppuntamento,
   onNuovoOffice,
   onArchivio,
+  onArchivioOffice,
 }) {
   return (
     <div className="header">
@@ -33,9 +34,17 @@ function Header({
           </div>
         </div>
 
-        <button onClick={onNuovoOffice}>
-          💻 Office
-        </button>
+        <div>
+          <button onClick={onNuovoOffice}>
+            💻 Office
+          </button>
+
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={onArchivioOffice}>
+              🗂️ Archivio Office
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -15,6 +15,7 @@ import NewEventModal from "./components/NewEventModal";
 import NewAppointmentModal from "./components/NewAppointmentModal";
 import NewOfficeModal from "./components/NewOfficeModal";
 import ArchiveModal from "./components/ArchiveModal";
+import OfficeArchiveModal from "./components/OfficeArchiveModal";
 
 import { initializeAutomaticEvents } from "./services/eventEngine";
 
@@ -32,6 +33,7 @@ function App() {
   const [appointmentOpen, setAppointmentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
+  const [officeArchiveOpen, setOfficeArchiveOpen] = useState(false);
 
   const [eventoDaModificare, setEventoDaModificare] = useState(null);
   const [attivitaOfficeDaModificare, setAttivitaOfficeDaModificare] =
@@ -103,14 +105,16 @@ function App() {
   }, []);
 
   /*
-   * Carica le attività Office aperte da Supabase.
+   * Carica tutte le attività Office da Supabase.
+   *
+   * Le attività aperte vengono mostrate nella Home.
+   * Le attività completate vengono utilizzate dall'archivio Office.
    */
   useEffect(() => {
     async function caricaOfficeDaSupabase() {
       const { data, error } = await supabase
         .from("office")
         .select("*")
-        .eq("completata", false)
         .order("scadenza", { ascending: true });
 
       if (error) {
@@ -258,10 +262,13 @@ function App() {
   }
 
   async function handleCompletaOffice(id) {
+    const completataAt = new Date().toISOString();
+
     const { error } = await supabase
       .from("office")
       .update({
         completata: true,
+        completata_at: completataAt,
       })
       .eq("id", id);
 
@@ -279,8 +286,14 @@ function App() {
     }
 
     setOffice((precedenti) =>
-      precedenti.filter(
-        (attivita) => attivita.id !== id
+      precedenti.map((attivita) =>
+        attivita.id === id
+          ? {
+              ...attivita,
+              completata: true,
+              completata_at: completataAt,
+            }
+          : attivita
       )
     );
   }
@@ -418,6 +431,9 @@ function App() {
         onArchivio={() =>
           setArchiveOpen(true)
         }
+        onArchivioOffice={() =>
+          setOfficeArchiveOpen(true)
+        }
       />
 
       <UploadCheckOut
@@ -490,6 +506,14 @@ function App() {
           setArchiveOpen(false)
         }
         events={events}
+      />
+
+      <OfficeArchiveModal
+        open={officeArchiveOpen}
+        onClose={() =>
+          setOfficeArchiveOpen(false)
+        }
+        office={office}
       />
     </div>
   );
