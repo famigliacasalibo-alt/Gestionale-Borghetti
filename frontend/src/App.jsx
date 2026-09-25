@@ -23,19 +23,26 @@ import { supabase } from "./supabaseClient";
 
 function App() {
   const [events, setEvents] = useState([]);
+
   const [checkOut, setCheckOut] = useState([]);
+
   const [office, setOffice] = useState([]);
 
   const [appartamentoSelezionato, setAppartamentoSelezionato] =
     useState(null);
 
   const [newEventOpen, setNewEventOpen] = useState(false);
+
   const [appointmentOpen, setAppointmentOpen] = useState(false);
+
   const [archiveOpen, setArchiveOpen] = useState(false);
+
   const [officeOpen, setOfficeOpen] = useState(false);
+
   const [officeArchiveOpen, setOfficeArchiveOpen] = useState(false);
 
   const [eventoDaModificare, setEventoDaModificare] = useState(null);
+
   const [attivitaOfficeDaModificare, setAttivitaOfficeDaModificare] =
     useState(null);
 
@@ -258,6 +265,7 @@ function App() {
     );
 
     setAttivitaOfficeDaModificare(null);
+
     setOfficeOpen(false);
   }
 
@@ -328,6 +336,7 @@ function App() {
     );
 
     setEventoDaModificare(null);
+
     setNewEventOpen(false);
   }
 
@@ -448,6 +457,7 @@ function App() {
 
       <CheckOutTable
         checkOut={checkOut}
+        events={events}
         onApriManutenzioni={
           setAppartamentoSelezionato
         }

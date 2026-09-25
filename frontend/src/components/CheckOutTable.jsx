@@ -1,4 +1,8 @@
-function CheckOutTable({ checkOut, onApriManutenzioni }) {
+function CheckOutTable({
+  checkOut,
+  events,
+  onApriManutenzioni,
+}) {
   const checkOutVisibili = checkOut.filter(
     (app) =>
       ![
@@ -10,6 +14,14 @@ function CheckOutTable({ checkOut, onApriManutenzioni }) {
   );
 
   if (checkOutVisibili.length === 0) return null;
+
+  function contaEventiAperti(app) {
+    return events.filter(
+      (evento) =>
+        evento.stato === "aperto" &&
+        String(evento.unitId) === String(app.unitId)
+    ).length;
+  }
 
   return (
     <table>
@@ -26,7 +38,7 @@ function CheckOutTable({ checkOut, onApriManutenzioni }) {
 
       <tbody>
         {checkOutVisibili.map((app, index) => {
-          console.log(app);
+          const eventiAperti = contaEventiAperti(app);
 
           return (
             <tr key={index}>
@@ -49,10 +61,11 @@ function CheckOutTable({ checkOut, onApriManutenzioni }) {
               </td>
 
               <td>
-                <input
-                  type="text"
-                  placeholder="..."
-                />
+                {eventiAperti === 0
+                  ? "Nessun evento"
+                  : eventiAperti === 1
+                  ? "1 evento"
+                  : `${eventiAperti} eventi`}
               </td>
             </tr>
           );
