@@ -1,5 +1,15 @@
 function CheckOutTable({ checkOut, onApriManutenzioni }) {
-  if (checkOut.length === 0) return null;
+  const checkOutVisibili = checkOut.filter(
+    (app) =>
+      ![
+        "APPOGGIO",
+        "APPOGGIO 2",
+        "APPOGGIO 3",
+        "10- MERAVILLE",
+      ].includes(String(app.appartamento).trim())
+  );
+
+  if (checkOutVisibili.length === 0) return null;
 
   return (
     <table>
@@ -15,7 +25,7 @@ function CheckOutTable({ checkOut, onApriManutenzioni }) {
       </thead>
 
       <tbody>
-        {checkOut.map((app, index) => {
+        {checkOutVisibili.map((app, index) => {
           console.log(app);
 
           return (
