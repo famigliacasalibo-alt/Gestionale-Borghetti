@@ -1,6 +1,7 @@
 function Header({
   onNuovoEvento,
   onCaricaCheckOut,
+  onCarrello,
   onNuovoAppuntamento,
   onNuovoOffice,
   onArchivio,
@@ -16,6 +17,10 @@ function Header({
       <div className="actions">
         <button onClick={onCaricaCheckOut}>
           📂 Carica Check-out
+        </button>
+
+        <button onClick={onCarrello}>
+          🛒 CARRELLO
         </button>
 
         <button onClick={onNuovoAppuntamento}>

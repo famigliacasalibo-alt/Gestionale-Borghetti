@@ -16,6 +16,8 @@ import NewAppointmentModal from "./components/NewAppointmentModal";
 import NewOfficeModal from "./components/NewOfficeModal";
 import ArchiveModal from "./components/ArchiveModal";
 import OfficeArchiveModal from "./components/OfficeArchiveModal";
+import CarrelloTable from "./components/CarrelloTable";
+import CarrelloModal from "./components/CarrelloModal";
 
 import { initializeAutomaticEvents } from "./services/eventEngine";
 
@@ -27,6 +29,8 @@ function App() {
   const [checkOut, setCheckOut] = useState([]);
 
   const [office, setOffice] = useState([]);
+
+  const [carrello, setCarrello] = useState([]);
 
   const [appartamentoSelezionato, setAppartamentoSelezionato] =
     useState(null);
@@ -41,9 +45,14 @@ function App() {
 
   const [officeArchiveOpen, setOfficeArchiveOpen] = useState(false);
 
+  const [carrelloOpen, setCarrelloOpen] = useState(false);
+
   const [eventoDaModificare, setEventoDaModificare] = useState(null);
 
   const [attivitaOfficeDaModificare, setAttivitaOfficeDaModificare] =
+    useState(null);
+
+  const [ticketCarrelloDaModificare, setTicketCarrelloDaModificare] =
     useState(null);
 
   const fileInputRef = useRef(null);
@@ -136,6 +145,31 @@ function App() {
     }
 
     caricaOfficeDaSupabase();
+  }, []);
+
+  /*
+   * Carica i ticket aperti del Carrello da Supabase.
+   */
+  useEffect(() => {
+    async function caricaCarrelloDaSupabase() {
+      const { data, error } = await supabase
+        .from("carrello")
+        .select("*")
+        .eq("stato", "aperto")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error(
+          "Errore caricamento Carrello da Supabase:",
+          error
+        );
+        return;
+      }
+
+      setCarrello(data || []);
+    }
+
+    caricaCarrelloDaSupabase();
   }, []);
 
   async function caricaFile(event) {
@@ -400,6 +434,114 @@ function App() {
     );
   }
 
+  async function handleNuovoTicketCarrello(ticket) {
+    const { data, error } = await supabase
+      .from("carrello")
+      .insert([ticket])
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error(
+        "Errore salvataggio ticket Carrello:",
+        error
+      );
+
+      alert(
+        "Errore nel salvataggio del ticket."
+      );
+
+      return;
+    }
+
+    setCarrello((precedenti) => [
+      ...precedenti,
+      data,
+    ]);
+  }
+
+  async function handleAggiornaTicketCarrello(
+    ticketAggiornato
+  ) {
+    const { data, error } = await supabase
+      .from("carrello")
+      .update({
+        descrizione: ticketAggiornato.descrizione,
+      })
+      .eq("id", ticketAggiornato.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error(
+        "Errore aggiornamento ticket Carrello:",
+        error
+      );
+
+      alert(
+        "Errore nell'aggiornamento del ticket."
+      );
+
+      return;
+    }
+
+    setCarrello((precedenti) =>
+      precedenti.map((ticket) =>
+        ticket.id === data.id
+          ? data
+          : ticket
+      )
+    );
+
+    setTicketCarrelloDaModificare(null);
+  }
+
+  async function handleChiudiTicketCarrello(id) {
+    const dataChiusura = new Date().toISOString();
+
+    const { error } = await supabase
+      .from("carrello")
+      .update({
+        stato: "chiuso",
+        data_chiusura: dataChiusura,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error(
+        "Errore chiusura ticket Carrello:",
+        error
+      );
+
+      alert(
+        "Errore nella chiusura del ticket."
+      );
+
+      return;
+    }
+
+    setCarrello((precedenti) =>
+      precedenti.filter(
+        (ticket) => ticket.id !== id
+      )
+    );
+  }
+
+  function handleNuovoTicket() {
+    setTicketCarrelloDaModificare(null);
+    setCarrelloOpen(true);
+  }
+
+  function handleModificaTicket(ticket) {
+    setTicketCarrelloDaModificare(ticket);
+    setCarrelloOpen(true);
+  }
+
+  function handleChiudiModalCarrello() {
+    setTicketCarrelloDaModificare(null);
+    setCarrelloOpen(false);
+  }
+
   function handleModificaEvento(evento) {
     setEventoDaModificare(evento);
     setNewEventOpen(true);
@@ -443,6 +585,7 @@ function App() {
         onArchivioOffice={() =>
           setOfficeArchiveOpen(true)
         }
+        onCarrello={handleNuovoTicket}
       />
 
       <UploadCheckOut
@@ -473,6 +616,12 @@ function App() {
         office={office}
         onCompleta={handleCompletaOffice}
         onModifica={handleModificaOffice}
+      />
+
+      <CarrelloTable
+        carrello={carrello}
+        onChiudi={handleChiudiTicketCarrello}
+        onModifica={handleModificaTicket}
       />
 
       <MaintenanceModal
@@ -508,6 +657,14 @@ function App() {
         onSave={handleNuovoOffice}
         onUpdate={handleAggiornaOffice}
         attivita={attivitaOfficeDaModificare}
+      />
+
+      <CarrelloModal
+        open={carrelloOpen}
+        onClose={handleChiudiModalCarrello}
+        onSave={handleNuovoTicketCarrello}
+        onUpdate={handleAggiornaTicketCarrello}
+        ticket={ticketCarrelloDaModificare}
       />
 
       <ArchiveModal
