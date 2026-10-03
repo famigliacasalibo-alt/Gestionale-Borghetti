@@ -28,13 +28,8 @@ function normalizzaAppartamento(nome) {
 function formattaData(dataExcel) {
   if (!dataExcel) return "";
 
-  if (typeof dataExcel === "number") {
-    const data = XLSX.SSF.parse_date_code(dataExcel);
-
-    return `${String(data.d).padStart(2, "0")}/${String(data.m).padStart(
-      2,
-      "0"
-    )}/${data.y}`;
+  if (typeof dataExcel === "string") {
+    return dataExcel;
   }
 
   return dataExcel;
@@ -53,7 +48,9 @@ export function importaAmicHotel(file) {
 
       const foglio = workbook.Sheets[workbook.SheetNames[0]];
 
-      const righe = XLSX.utils.sheet_to_json(foglio);
+      const righe = XLSX.utils.sheet_to_json(foglio, {
+        raw: false,
+      });
 
       const checkOut = righe.map((riga) => {
         const nomeAppartamento = normalizzaAppartamento(
